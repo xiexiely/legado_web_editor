@@ -3,6 +3,10 @@ import { createWebHashHistory, createRouter } from "vue-router";
 
 const routes = [
   {
+    path: "/",
+    redirect: "/bookSource",
+  },
+  {
     path: "/bookSource",
     name: "book-home",
     component: sourceEditor,
