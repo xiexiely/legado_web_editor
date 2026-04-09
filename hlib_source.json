@@ -1,0 +1,46 @@
+[
+  {
+    "bookSourceUrl": "https://hlib.cc",
+    "bookSourceType": 0,
+    "bookSourceName": "🌈HLib书屋 (高级定制)",
+    "bookSourceGroup": "高级定制源",
+    "bookSourceComment": "【功能提示】\n1. 支持绕过Cloudflare防护 (WebView模式)\n2. 包含类似八叉书库的防并发被封机制\n3. 详情页支持特殊指令交互 (如输入“目录”清缓存，输入“10分”自动打分)\n4. 由于目标网站有严格的CF防护，搜索和目录获取默认启用WebView解析。",
+    "loginUrl": "https://hlib.cc/login.php",
+    "loginUi": "[\n  {\"name\": \"账号\", \"type\": \"text\"},\n  {\"name\": \"密码\", \"type\": \"password\"}\n]",
+    "loginCheckJs": "<js>\n// 简单的登录状态检测，可根据实际页面调整\nvar html = java.ajax('https://hlib.cc/user.php');\nif(html.indexOf('退出登录') != -1 || html.indexOf('我的书架') != -1){\n  java.toast('登录成功');\n  return true;\n}\nreturn false;\n</js>",
+    "header": "{\"User-Agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\", \"Referer\": \"https://hlib.cc/\"}",
+    "searchUrl": "<js>\n// 动态搜索：可根据前缀调整搜索类型，并启用WebView绕过CF\nvar type = 'articlename';\nvar q = key;\nif(key.startsWith('作者：')){\n  type = 'author';\n  q = key.replace('作者：', '');\n}\nvar url = 'https://hlib.cc/search.php?keyword=' + encodeURIComponent(q) + '&type=' + type;\n// 返回带WebView的配置，绕过502/403\nreturn url + ',{\"webView\": true}';\n</js>",
+    "exploreUrl": "总点击榜::https://hlib.cc/top/allvisit/{{page}}.html,{\"webView\": true}\n最新入库::https://hlib.cc/top/postdate/{{page}}.html,{\"webView\": true}\n最近更新::https://hlib.cc/top/lastupdate/{{page}}.html,{\"webView\": true}",
+    "ruleSearch": {
+      "bookList": "class.item||class.bookbox||#newscontent .l li",
+      "name": "tag.a.0@text||class.s2 a@text",
+      "author": "class.author@text||class.s4@text",
+      "kind": "class.s1@text||class.sys@text",
+      "wordCount": "class.s3@text",
+      "intro": "class.intro@text||class.des@text",
+      "coverUrl": "tag.img@src",
+      "bookUrl": "tag.a.0@href||class.s2 a@href"
+    },
+    "ruleBookInfo": {
+      "init": "<js>\n// 【高级交互逻辑】类似于八叉书库的详情页指令互动\nvar variable = book.getVariable(\"custom\");\nif(variable === \"目录\") {\n  java.toast(\"已清空本地目录缓存，即将重新拉取\");\n  book.putVariable(\"custom\", \"\");\n  // 这里可以调用底层方法清空缓存或做标记\n} else if(variable.indexOf(\"分\") != -1) {\n  java.toast(\"后台提交评分：\" + variable);\n  book.putVariable(\"custom\", \"\");\n  // 模拟打分请求\n} else if(variable === \"🔒\") {\n  java.toast(\"已开启隐私模式\");\n}\nreturn result;\n</js>",
+      "name": "#info h1@text||class.booktitle@text",
+      "author": "#info p:matches(作\\s*者)@text||class.bookinfo p.0@text",
+      "kind": "#info p:matches(类\\s*别)@text",
+      "wordCount": "#info p:matches(字\\s*数)@text",
+      "lastChapter": "#info p:matches(最\\s*新) a@text",
+      "intro": "#intro@html||class.bookintro@html",
+      "coverUrl": "#fmimg img@src||class.bookcover img@src",
+      "tocUrl": "class.read-btn@href||text.完整目录@href"
+    },
+    "ruleToc": {
+      "chapterList": "<js>\n// 智能缓存与延时获取，防止频繁请求被封锁\nvar cacheKey = 'toc_' + book.name;\nvar cached = cache.getFromMemory(cacheKey);\nif(cached && !book.getVariable(\"forceUpdate\")) {\n  return cached;\n}\n// 增加延时，模拟真人\njava.lang.Thread.sleep(Math.random() * 1000 + 500);\nvar html = java.ajax(baseUrl + ',{\"webView\": true}');\nvar list = org.jsoup.Jsoup.parse(html).select('dl dd a, .chapterlist li a');\ncache.putMemory(cacheKey, list);\nreturn list;\n</js>",
+      "chapterName": "text",
+      "chapterUrl": "href"
+    },
+    "ruleContent": {
+      "content": "<js>\n// 核心：防批量下载与风控检测\nvar chapterIndex = chapter.index;\nvar readIndex = book.durChapterIndex;\n// 如果当前请求的章节远远超过用户阅读章节（比如超过5章），说明在批量下载\nif(Math.abs(chapterIndex - readIndex) > 5) {\n    java.log(\"检测到批量下载，触发安全延时防止IP被封...\");\n    // 挂起线程5-10秒，大幅降低并发率\n    java.lang.Thread.sleep(Math.random() * 5000 + 5000);\n}\n\n// 获取正文 (通过WebView避免CF拦截)\nvar html = java.ajax(baseUrl + ',{\"webView\": true}');\nvar doc = org.jsoup.Jsoup.parse(html);\nvar content = doc.select('#content, .read-content').html();\nreturn content;\n</js>",
+      "replaceRegex": "##(hlib\\.cc|本站域名|最快更新|防盗版|支持正版|请记住).*?\\n",
+      "imageStyle": "FULL"
+    }
+  }
+]
